@@ -5,7 +5,9 @@ from pygame.locals import *
 
 import Camera
 from Camera import *
+from Player2 import Player2
 from map import Map
+from models.Item import Item
 from textures.TextureLoader import Load_Block_Textures
 from Player import Player
 from Enemy import Enemy
@@ -25,10 +27,28 @@ class Gameplay(pygame.sprite.Group):
         self.screen.fill((0, 0, 0))
         self.camera_group = Camera()
         self.display = pygame.Surface((300, 300))
+        
         self.player = Player((540, 360), self.camera_group,self.screen,self.surface_size)
+        self.player2 = Player2((300, 300), self.camera_group,self.screen)
+
+        self.players = pygame.sprite.Group()
+        self.players.add(self.player2)
+        
         self.enemy=Enemy((540,360),self.camera_group,self.screen)
         self.enemyGroup = pygame.sprite.Group()
         self.enemyGroup.add(self.enemy)
+
+        self.itemGroup = pygame.sprite.Group()
+        
+        item=Item((200,200),self.camera_group,self.screen,'Adam') 
+        self.itemGroup.add(item)
+
+        item=Item((400,200),self.camera_group,self.screen,'Filip') 
+        self.itemGroup.add(item)
+
+        item=Item((600,200),self.camera_group,self.screen,'Nikodem') 
+        self.itemGroup.add(item)
+
         self.block_pixelsx = 30
         self.block_pixelsy = 30
         self.texture_count_per_tilex = 36
@@ -79,6 +99,7 @@ class Gameplay(pygame.sprite.Group):
     def drawMap(self, player):
 
         # Validate player_pos
+
         self.player_pos += player.direction * self.player.speed
         if self.doorlist is not None:
             for door in self.doorlist:
@@ -93,7 +114,7 @@ class Gameplay(pygame.sprite.Group):
         if self.player_pos[1] > self.rectSizey - self.block_pixelsy:
             self.player_pos[1] = self.rectSizey - self.block_pixelsy
 
-        print("{0}, {1}".format(self.player_pos, self.player.rect.left))
+        
 
         # fill screen with floor
         for y, row in enumerate(self.map_Data.ChunkMap):
@@ -180,9 +201,13 @@ class Gameplay(pygame.sprite.Group):
 
         running = True
         i = 0
+        steps = 10
+
+
         while running:
 
             for event in pygame.event.get():
+                print("{0}, {1}".format(self.player_pos, self.player.rect.left))
                 if event.type == QUIT:
                     running = False
                     pygame.quit()
@@ -190,13 +215,47 @@ class Gameplay(pygame.sprite.Group):
                 if event.type == pygame.MOUSEWHEEL:
                     self.camera_group.zoom_scale += event.y * 0.03
                     # zoom jest ale są cyrki, ale można się pobawić
+
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_LEFT or event.key == ord('a'):
+                        self.player2.control(-steps,0)
+                    if event.key == pygame.K_RIGHT or event.key == ord('d'):
+                        self.player2.control(steps,0)
+                    if event.key == pygame.K_UP:
+                        self.player2.control(0,-steps)
+                    if event.key == pygame.K_DOWN :
+                        self.player2.control(0,steps)
+
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_LEFT or event.key == ord('a'):
+                        self.player2.control(steps,0)
+                    if event.key == pygame.K_RIGHT or event.key == ord('d'):
+                        self.player2.control(-steps,0)
+                    if event.key == pygame.K_UP:
+                        self.player2.control(0,steps)
+                    if event.key == pygame.K_DOWN:
+                        self.player2.control(0,-steps)
+                
             self.screen.fill((0, 0, 0))
             self.camera_group.update()
             self.drawMap(self.player)
+
+            self.player2.draw()
             
-            for self.enemy in self.enemyGroup:       
-                 self.enemy.draw()
+            for enemy in self.enemyGroup:       
+                enemy.draw()
             
+            # rysowanie mapy + itemy powinno się odbywać poza pętlą? 
+            for item in self.itemGroup:
+                item.draw()
+
+            pickupItems = pygame.sprite.groupcollide(self.players, self.itemGroup, False, True) 
+
+            if pickupItems:
+                print(pickupItems.values())
+                for player, item in pickupItems.items():
+                    print(player)
+                    print(item[0])   
             
             self.camera_group.draw(self.player)
             self.player.bulletGroup.update()
